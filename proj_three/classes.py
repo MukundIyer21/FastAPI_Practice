@@ -5,6 +5,8 @@ from datetime import datetime
 
 Base = declarative_base()
 
+engine = create_engine('sqlite:///todo.db', echo=True)
+
 class User(Base):
     __tablename__ = 'users'
     
@@ -29,10 +31,9 @@ class Task(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-
     user = relationship('User', back_populates='tasks')
+
 if __name__=="__main__":
-    engine = create_engine('sqlite:///todo.db', echo=True)
     Base.metadata.create_all(engine)
 
     Session = sessionmaker(bind=engine)
@@ -106,5 +107,3 @@ if __name__=="__main__":
     print(f"Created {session.query(Task).count()} tasks")
     
     session.close()
-        
-    

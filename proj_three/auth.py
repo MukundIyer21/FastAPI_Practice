@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, List
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from classes import User
-from schemas import UserCreate, UserResponse, Token
+from classes import User, Task
+from todos import UserSchema, TaskSchema, Token
 
 SECRET_KEY = "a7f9d8e6c4b2a1f5e8d7c6b5a4f3e2d1c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4"
 ALGORITHM = "HS256"
@@ -16,7 +16,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -78,9 +78,8 @@ def get_current_user_with_db(
     return get_current_user(token=token, db=db)
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(user: UserCreate, db: Session = Depends(get_db)):
-
+@router.post("/auth/register", response_model=UserSchema, status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+def register(user: UserSchema, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")
@@ -100,9 +99,8 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return db_user
 
-@router.post("/token", response_model=Token)
+@router.post("/auth/token", response_model=Token, tags=["Authentication"])
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
- 
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -116,7 +114,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/auth/me", response_model=UserSchema, tags=["Authentication"])
 def read_users_me(current_user: User = Depends(get_current_user_with_db)):
-
     return current_user
+
